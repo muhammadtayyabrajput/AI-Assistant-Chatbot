@@ -1,0 +1,41 @@
+server:
+  port: 8083
+spring:
+  config:
+    import: optional:file:../.env[.properties]
+  application:
+    name: chat-service
+  datasource:
+    url: jdbc:mysql://localhost:3307/chat_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    username: root
+    password: root
+  jpa:
+    hibernate:
+      ddl-auto: update
+  ai:
+    model:
+      chat: openai
+      embedding: transformers
+    openai:
+      # OpenRouter exposes an OpenAI-compatible API, so the OpenAI client works with any model it hosts.
+      api-key: ${OPENROUTER_API_KEY:missing-key}
+      base-url: https://openrouter.ai/api
+      chat:
+        options:
+          model: ${OPENROUTER_MODEL:anthropic/claude-haiku-4.5}
+          max-tokens: 1024
+          temperature: 0.3
+vector:
+  datasource:
+    url: jdbc:postgresql://localhost:5434/vectordb
+    username: postgres
+    password: postgres
+banking:
+  url: http://localhost:8082
+jwt:
+  secret: ${JWT_SECRET:dev-secret-dev-secret-dev-secret-dev-secret}
+cors:
+  allowed-origin: http://localhost:3000
+chat:
+  history-window: 10
+  rag-top-k: 3

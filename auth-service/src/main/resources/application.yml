@@ -1,0 +1,25 @@
+server:
+  port: 8081
+spring:
+  config:
+    import: optional:file:../.env[.properties]
+  application:
+    name: auth-service
+  datasource:
+    url: jdbc:mysql://localhost:3307/auth_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    username: root
+    password: root
+  jpa:
+    hibernate:
+      ddl-auto: update
+jwt:
+  secret: ${JWT_SECRET:dev-secret-dev-secret-dev-secret-dev-secret}
+  expiration-hours: 24
+cors:
+  allowed-origin: http://localhost:3000
+app:
+  frontend-url: http://localhost:3000
+  reset-token-minutes: 30
+  # DEV ONLY: returns the reset link in the API response so it can be tested without an email server.
+  # In production set APP_DEV_EXPOSE_RESET_LINK=false and configure spring.mail.* so the link is emailed.
+  dev-expose-reset-link: ${APP_DEV_EXPOSE_RESET_LINK:true}

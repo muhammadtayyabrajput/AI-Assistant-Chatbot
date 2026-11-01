@@ -1,0 +1,11 @@
+server:
+  port: 8082
+spring:
+  config:
+    import: optional:file:../.env[.properties]
+  application:
+    name: banking-service
+jwt:
+  secret: ${JWT_SECRET:dev-secret-dev-secret-dev-secret-dev-secret}
+cors:
+  allowed-origin: http://localhost:3000

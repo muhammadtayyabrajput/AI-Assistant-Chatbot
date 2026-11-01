@@ -1,0 +1,113 @@
+# Production stack for a single VM (e.g. Oracle Cloud Always Free).
+#   docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --build
+# Only Caddy (80/443) is reachable from the internet. Databases and services stay on the private Docker network.
+services:
+  mysql:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD in .env.prod}
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./infra/mysql-init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  pgvector:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env.prod}
+      POSTGRES_DB: vectordb
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d vectordb"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  auth-service:
+    build: ./auth-service
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/auth_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env.prod}
+      CORS_ALLOWED_ORIGIN: ${CORS_ALLOWED_ORIGIN:?set CORS_ALLOWED_ORIGIN in .env.prod}
+      APP_FRONTEND_URL: ${CORS_ALLOWED_ORIGIN}
+      APP_DEV_EXPOSE_RESET_LINK: "false"
+      # To email reset links, uncomment and fill in (any SMTP provider, e.g. Brevo / Resend):
+      # SPRING_MAIL_HOST: smtp-relay.brevo.com
+      # SPRING_MAIL_PORT: "587"
+      # SPRING_MAIL_USERNAME: your-smtp-login
+      # SPRING_MAIL_PASSWORD: your-smtp-password
+      # SPRING_MAIL_PROPERTIES_MAIL_SMTP_AUTH: "true"
+      # SPRING_MAIL_PROPERTIES_MAIL_SMTP_STARTTLS_ENABLE: "true"
+
+  banking-service:
+    build: ./banking-service
+    restart: unless-stopped
+    environment:
+      JWT_SECRET: ${JWT_SECRET}
+      CORS_ALLOWED_ORIGIN: ${CORS_ALLOWED_ORIGIN}
+
+  chat-service:
+    build: ./chat-service
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      pgvector:
+        condition: service_healthy
+      banking-service:
+        condition: service_started
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/chat_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      VECTOR_DATASOURCE_URL: jdbc:postgresql://pgvector:5432/vectordb
+      VECTOR_DATASOURCE_USERNAME: postgres
+      VECTOR_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      BANKING_URL: http://banking-service:8082
+      JWT_SECRET: ${JWT_SECRET}
+      CORS_ALLOWED_ORIGIN: ${CORS_ALLOWED_ORIGIN}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:?set OPENROUTER_API_KEY in .env.prod}
+      OPENROUTER_MODEL: ${OPENROUTER_MODEL:-anthropic/claude-haiku-4.5}
+      # keep the ~90 MB embedding model across rebuilds
+      SPRING_AI_EMBEDDING_TRANSFORMER_CACHE_DIRECTORY: /models
+    volumes:
+      - models:/models
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on:
+      - auth-service
+      - banking-service
+      - chat-service
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN in .env.prod}
+    volumes:
+      - ./infra/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  mysql_data:
+  pg_data:
+  models:
+  caddy_data:
+  caddy_config:

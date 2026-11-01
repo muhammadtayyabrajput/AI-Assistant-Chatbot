@@ -1,0 +1,24 @@
+# One public hostname for the whole API. Caddy gets and renews the HTTPS certificate automatically.
+{$DOMAIN} {
+	# auth-service
+	handle /api/auth/* {
+		reverse_proxy auth-service:8081
+	}
+
+	# chat-service (streaming replies: flush immediately instead of buffering)
+	@chat path /api/chat /api/chats /api/chats/*
+	handle @chat {
+		reverse_proxy chat-service:8083 {
+			flush_interval -1
+		}
+	}
+
+	# everything else under /api -> banking-service (accounts, cards, transactions, faqs)
+	handle /api/* {
+		reverse_proxy banking-service:8082
+	}
+
+	handle {
+		respond "FintechAssist API is running" 200
+	}
+}
