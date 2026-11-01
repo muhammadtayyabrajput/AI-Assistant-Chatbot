@@ -38,6 +38,7 @@ public class PasswordResetController {
     private final String frontendUrl;
     private final Duration ttl;
     private final boolean exposeLink;
+    private final RateLimiter requests = new RateLimiter(5, Duration.ofMinutes(15));
 
     public PasswordResetController(UserRepository users, PasswordResetTokenRepository tokens, PasswordEncoder encoder,
                                    ObjectProvider<JavaMailSender> mail,
@@ -53,15 +54,17 @@ public class PasswordResetController {
         this.exposeLink = exposeLink;
     }
 
-    /** Always answers the same way, so it can't be used to find out which emails are registered. */
     @PostMapping("/forgot-password")
     @Transactional
     public Map<String, String> forgot(@Valid @RequestBody ForgotPasswordRequest req) {
         Map<String, String> response = new HashMap<>();
         response.put("message", "If that email is registered, a password reset link has been sent.");
 
-        users.findByEmail(req.email().trim().toLowerCase()).ifPresent(user -> {
-            tokens.deleteByUserId(user.getId()); // only the newest link works
+        String email = req.email().trim().toLowerCase();
+        if (!requests.tryAcquire(email)) return response;
+
+        users.findByEmail(email).ifPresent(user -> {
+            tokens.deleteByUserId(user.getId());
             byte[] raw = new byte[32];
             RANDOM.nextBytes(raw);
             String token = Base64.getUrlEncoder().withoutPadding().encodeToString(raw);

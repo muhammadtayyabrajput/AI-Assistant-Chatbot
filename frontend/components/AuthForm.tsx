@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api, AUTH_URL, getSession, saveSession, type Session } from "@/lib/api";
 import { LogoMark, Wordmark } from "@/components/Logo";
-import PasswordChecklist, { passwordValid } from "@/components/PasswordChecklist";
+import PasswordChecklist from "@/components/PasswordChecklist";
+import { passwordValid } from "@/lib/passwordRules";
 
 export const fieldClass =
   "peer w-full rounded-xl border border-line bg-surface px-4 pb-2 pt-6 text-[15px] outline-none transition focus:border-forest focus:ring-4 focus:ring-lime/40";
@@ -15,7 +16,6 @@ export const labelClass =
 export function BrandPanel() {
   return (
     <div className="relative hidden flex-1 overflow-hidden bg-forest p-12 text-paper lg:flex lg:flex-col lg:justify-between">
-      {/* glow + rings */}
       <div className="pointer-events-none absolute -right-32 -top-32 h-[520px] w-[520px] rounded-full bg-lime/20 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-40 -left-20 h-[420px] w-[420px] rounded-full border border-lime/20" />
       <div className="pointer-events-none absolute -bottom-24 -left-4 h-[300px] w-[300px] rounded-full border border-lime/20" />
@@ -37,7 +37,6 @@ export function BrandPanel() {
         </p>
       </div>
 
-      {/* floating cards */}
       <div className="pointer-events-none absolute right-10 top-24 w-[270px]">
         <div
           className="float card-sheen relative aspect-[1.586] rounded-2xl bg-gradient-to-br from-lime to-[#9ad94a] p-5 text-forest shadow-2xl"
@@ -81,7 +80,6 @@ export default function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const [busy, setBusy] = useState(false);
   const isSignup = mode === "signup";
 
-  // Already signed in on this tab -> go to the app (log out first to use another account).
   useEffect(() => {
     if (getSession()) router.replace("/chat");
   }, [router]);

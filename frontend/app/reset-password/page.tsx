@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { api, AUTH_URL } from "@/lib/api";
 import { BrandPanel, fieldClass, labelClass } from "@/components/AuthForm";
-import PasswordChecklist, { passwordValid } from "@/components/PasswordChecklist";
+import PasswordChecklist from "@/components/PasswordChecklist";
+import { passwordValid } from "@/lib/passwordRules";
 
 function ResetForm() {
   const router = useRouter();

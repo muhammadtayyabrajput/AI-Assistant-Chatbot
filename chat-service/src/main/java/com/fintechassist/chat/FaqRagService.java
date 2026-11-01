@@ -19,7 +19,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-/** Loads the bank FAQs into pgvector (embedded locally with all-MiniLM) and retrieves the most relevant ones. */
 @Service
 public class FaqRagService implements ApplicationRunner {
     private static final Logger log = LoggerFactory.getLogger(FaqRagService.class);

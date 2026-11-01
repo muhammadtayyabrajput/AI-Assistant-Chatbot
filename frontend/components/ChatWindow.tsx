@@ -52,7 +52,6 @@ export default function ChatWindow({ messages, streaming, userName, onSend, onOp
 
   return (
     <section className="flex min-w-0 flex-1 flex-col overflow-hidden rounded-none bg-surface md:rounded-3xl md:border md:border-line">
-      {/* mobile header */}
       <header className="flex items-center justify-between border-b border-line px-4 py-3 md:hidden">
         <button onClick={onOpenMenu} className="rounded-lg px-2 py-1 text-xl" aria-label="Menu">☰</button>
         <LogoMark size={28} />

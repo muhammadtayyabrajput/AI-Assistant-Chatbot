@@ -111,7 +111,6 @@ export default function Dashboard({ token, userId, userName, refreshKey, open, o
         </button>
         {error && <p className="rounded-xl bg-coral/10 px-3 py-2 text-xs text-[#b2391f]">{error}</p>}
 
-        {/* balance */}
         <div>
           <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted">Total balance</p>
           <p className="mt-1 font-display text-[44px] font-medium leading-none tracking-tight text-forest">
@@ -120,7 +119,6 @@ export default function Dashboard({ token, userId, userName, refreshKey, open, o
           <p className="mt-2 truncate font-mono text-[11px] text-muted">{account?.accountNumber}</p>
         </div>
 
-        {/* cards */}
         {card && (
           <div>
             <div className="mb-2 flex items-center justify-between">
@@ -167,7 +165,6 @@ export default function Dashboard({ token, userId, userName, refreshKey, open, o
           </div>
         )}
 
-        {/* spending */}
         {spend.rows.length > 0 && (
           <div className="rounded-2xl bg-surface p-4">
             <div className="mb-3 flex items-baseline justify-between">
@@ -195,7 +192,6 @@ export default function Dashboard({ token, userId, userName, refreshKey, open, o
           </div>
         )}
 
-        {/* transactions */}
         <div>
           <h3 className="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-muted">Recent activity</h3>
           <ul className="space-y-1">

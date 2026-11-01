@@ -98,3 +98,64 @@ chat-service/      Spring Boot: LLM client, RAG, tools, streaming, chat history
 frontend/          Next.js app (login, signup, forgot/reset password, chat + dashboard)
 infra/             Database init script, reverse-proxy config
 ```
+
+## Run locally
+
+**Requirements:** Java 17+, Maven 3.9+, Node 20+, Docker Desktop, and an [OpenRouter](https://openrouter.ai/keys) API key.
+
+1. **Create your environment file.** Copy `.env.example` to `.env` in the project root and put your key in it:
+   ```
+   OPENROUTER_API_KEY=sk-or-v1-...
+   ```
+   All three services read this file automatically. It is git-ignored.
+
+2. **Start the databases** (MySQL on port 3307, PostgreSQL with pgvector on port 5434):
+   ```bash
+   docker compose up -d
+   ```
+
+3. **Start the three backend services**, each in its own terminal:
+   ```bash
+   cd auth-service    && mvn spring-boot:run   # http://localhost:8081
+   cd banking-service && mvn spring-boot:run   # http://localhost:8082
+   cd chat-service    && mvn spring-boot:run   # http://localhost:8083
+   ```
+   The first start of chat-service downloads the ~90 MB embedding model and then embeds the FAQs, so give it a minute or two. Wait for `Started ChatServiceApplication`.
+
+4. **Start the frontend:**
+   ```bash
+   cd frontend
+   npm install
+   npm run dev                                  # http://localhost:3000
+   ```
+
+5. Open http://localhost:3000, create an account, and try:
+   - "What was my last transaction?"
+   - "What is my card limit?"
+   - "Block my card"
+   - "How do I dispute a charge?"
+
+On Windows, `.\start-all.ps1` does steps 2 to 4 in separate windows (it uses `mvn` from your PATH, or the path in `$env:MVN_CMD`).
+
+**Local notes**
+- With no email server configured, the forgot-password page shows the reset link on screen. This only happens in development.
+- Banking data is generated in memory, so it resets when banking-service restarts. Users, chats and FAQ embeddings are stored in the databases.
+- If chat replies say the API key was rejected, check `.env` and restart chat-service. Settings are read at startup.
+- Change the default `JWT_SECRET` before running anywhere other than your own machine.
+
+## Tests
+
+```bash
+cd auth-service    && mvn test     # 50 tests
+cd banking-service && mvn test     # 27 tests
+cd chat-service    && mvn test     # 73 tests
+cd frontend        && npm test     # 33 tests
+```
+
+The backend tests need no running databases or API key: they use in-memory H2 and mock the AI and vector store. They cover:
+- **Authentication:** signup rules, one account per email, login lockout, password-reset flow (single use, expiry), JWT signing, tampering and expiry.
+- **Authorization:** a user can never read or change another user's data, in either the banking or the chat service.
+- **Attack cases:** SQL-injection strings, forged and unsigned tokens, oversized input, CORS from other origins, and rate limits.
+- **AI safety:** a card can only be blocked after the customer was asked about that exact card and said yes, and a customer's name can't inject instructions into the prompt.
+
+The frontend tests cover the streaming parser, API error handling, token-expiry detection and the password rules.

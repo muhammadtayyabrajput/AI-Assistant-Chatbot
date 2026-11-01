@@ -8,21 +8,30 @@ import org.springframework.web.client.RestClient;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
+import java.util.regex.Pattern;
 
-/**
- * Tools Claude can call. One instance is created per request and is bound to the authenticated user:
- * the userId always comes from the JWT, never from the model, so the model cannot touch another user's data.
- */
 public class BankingTools {
     private static final ParameterizedTypeReference<List<Map<String, Object>>> LIST = new ParameterizedTypeReference<>() {};
     private static final ParameterizedTypeReference<Map<String, Object>> MAP = new ParameterizedTypeReference<>() {};
 
+    private static final Pattern YES = Pattern.compile(
+            "^\\s*(yes|yep|yeah|y|confirm|confirmed|ok|okay|sure|proceed|go ahead|do it|please do|haan|ji)\\b.*",
+            Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+    private static final Pattern ASKED_TO_CONFIRM = Pattern.compile(
+            "confirm|are you sure|proceed|go ahead|shall i|should i", Pattern.CASE_INSENSITIVE);
+    private static final int MAX_CONFIRMATION_LENGTH = 80;
+
     private final RestClient rest;
     private final JwtUser user;
+    private final String userMessage;
+    private final String previousAssistantMessage;
 
-    public BankingTools(RestClient rest, JwtUser user) {
+    public BankingTools(RestClient rest, JwtUser user, String userMessage, String previousAssistantMessage) {
         this.rest = rest;
         this.user = user;
+        this.userMessage = userMessage == null ? "" : userMessage;
+        this.previousAssistantMessage = previousAssistantMessage == null ? "" : previousAssistantMessage;
     }
 
     @Tool(description = "Get the customer's most recent transactions, newest first. Each has merchant, category, amount (USD), type (DEBIT/CREDIT), status (COMPLETED/PENDING), date and the last 4 digits of the card used.")
@@ -36,10 +45,7 @@ public class BankingTools {
 
     @Tool(description = "Get all of the customer's cards with id, type (DEBIT/CREDIT), masked number, expiry, credit limit, available limit, daily ATM limit and status (ACTIVE/BLOCKED).")
     public Object getCards() {
-        return call(() -> rest.get()
-                .uri("/api/cards/{id}", user.userId())
-                .header(HttpHeaders.AUTHORIZATION, "Bearer " + user.token())
-                .retrieve().body(LIST));
+        return call(() -> fetchCards());
     }
 
     @Tool(description = "Get the customer's account number and current balance.")
@@ -50,15 +56,40 @@ public class BankingTools {
                 .retrieve().body(MAP));
     }
 
-    @Tool(description = "Permanently block one of the customer's cards. IMPORTANT: only call this AFTER the customer has explicitly confirmed (for example answered 'yes') which specific card to block. Call getCards first to get the card id.")
+    @Tool(description = "Permanently block one of the customer's cards. Only call this after you asked the customer to confirm blocking that specific card (mention its last 4 digits) and they replied yes. Call getCards first to get the card id.")
     public Object blockCard(@ToolParam(description = "The card id exactly as returned by getCards") String cardId) {
-        return call(() -> rest.post()
-                .uri("/api/cards/{u}/{c}/block", user.userId(), cardId)
-                .header(HttpHeaders.AUTHORIZATION, "Bearer " + user.token())
-                .retrieve().body(MAP));
+        if (!customerConfirmed()) {
+            return Map.of("error", "NOT_CONFIRMED: the customer has not confirmed yet. Ask them to confirm blocking this "
+                    + "specific card (mention its last 4 digits) and wait for a yes before calling blockCard again.");
+        }
+        return call(() -> {
+            List<Map<String, Object>> cards = fetchCards();
+            Map<String, Object> card = cards.stream().filter(c -> cardId.equals(c.get("id"))).findFirst().orElse(null);
+            if (card != null && !previousAssistantMessage.contains(String.valueOf(card.get("last4")))) {
+                return Map.of("error", "CARD_NOT_CONFIRMED: the customer was not asked about the card ending "
+                        + card.get("last4") + ". Ask them to confirm that card first.");
+            }
+            return rest.post()
+                    .uri("/api/cards/{u}/{c}/block", user.userId(), cardId)
+                    .header(HttpHeaders.AUTHORIZATION, "Bearer " + user.token())
+                    .retrieve().body(MAP);
+        });
     }
 
-    private Object call(java.util.function.Supplier<Object> s) {
+    boolean customerConfirmed() {
+        return userMessage.length() <= MAX_CONFIRMATION_LENGTH
+                && YES.matcher(userMessage).matches()
+                && ASKED_TO_CONFIRM.matcher(previousAssistantMessage).find();
+    }
+
+    private List<Map<String, Object>> fetchCards() {
+        return rest.get()
+                .uri("/api/cards/{id}", user.userId())
+                .header(HttpHeaders.AUTHORIZATION, "Bearer " + user.token())
+                .retrieve().body(LIST);
+    }
+
+    private Object call(Supplier<Object> s) {
         try {
             return s.get();
         } catch (Exception e) {

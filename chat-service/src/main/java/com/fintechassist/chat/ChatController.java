@@ -3,6 +3,7 @@ package com.fintechassist.chat;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 import reactor.core.publisher.Flux;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
@@ -26,15 +28,21 @@ public class ChatController {
     private final ChatService chatService;
     private final ChatRepository chats;
     private final ChatMessageRepository messages;
+    private final RateLimiter limiter;
 
-    public ChatController(ChatService chatService, ChatRepository chats, ChatMessageRepository messages) {
+    public ChatController(ChatService chatService, ChatRepository chats, ChatMessageRepository messages,
+                          @Value("${chat.rate-limit-per-minute:20}") int perMinute) {
         this.chatService = chatService;
         this.chats = chats;
         this.messages = messages;
+        this.limiter = new RateLimiter(perMinute, Duration.ofMinutes(1));
     }
 
     @PostMapping(value = "/chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<ServerSentEvent<String>> chat(@AuthenticationPrincipal JwtUser user, @Valid @RequestBody ChatRequest req) {
+        if (!limiter.tryAcquire(String.valueOf(user.userId()))) {
+            throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS, "Too many messages. Please slow down.");
+        }
         return chatService.stream(user, req.chatId(), req.message());
     }
 

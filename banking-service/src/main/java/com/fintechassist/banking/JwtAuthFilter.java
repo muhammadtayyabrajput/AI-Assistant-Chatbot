@@ -18,7 +18,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-/** Validates the JWT issued by auth-service. The principal is the userId from the token subject. */
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
     private final SecretKey key;
@@ -38,9 +37,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 var auth = new UsernamePasswordAuthenticationToken(
                         Long.valueOf(claims.getSubject()), null, List.of());
                 SecurityContextHolder.getContext().setAuthentication(auth);
-            } catch (Exception ignored) {
-                // invalid/expired token: leave unauthenticated, security config returns 401
-            }
+            } catch (Exception ignored) {}
         }
         chain.doFilter(req, res);
     }

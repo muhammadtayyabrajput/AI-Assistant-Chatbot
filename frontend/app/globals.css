@@ -26,7 +26,6 @@ body {
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-thumb { background: #d4ccb8; border-radius: 8px; }
 
-/* ---------- chat markdown ---------- */
 .prose-chat p { margin: 0.45em 0; }
 .prose-chat ul { list-style: disc; padding-left: 1.25rem; margin: 0.45em 0; }
 .prose-chat ol { list-style: decimal; padding-left: 1.25rem; margin: 0.45em 0; }
@@ -37,7 +36,6 @@ body {
 .prose-chat th { background: var(--color-surface); }
 .prose-chat code { background: #ebe5d6; padding: 1px 5px; border-radius: 5px; font-size: 0.85em; }
 
-/* ---------- motion ---------- */
 @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 .rise { animation: rise 0.35s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
 
@@ -53,7 +51,6 @@ body {
 .float { animation: float 7s ease-in-out infinite; }
 .float-slow { animation: float 10s ease-in-out infinite; }
 
-/* subtle paper grain + soft glow used on page backgrounds */
 .bg-paper-grain {
   background-color: var(--color-paper);
   background-image:
@@ -61,7 +58,6 @@ body {
     radial-gradient(700px 500px at -10% 110%, rgba(14, 59, 44, 0.08), transparent 60%);
 }
 
-/* card sheen */
 .card-sheen::after {
   content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
   background: linear-gradient(115deg, transparent 30%, rgba(255, 255, 255, 0.14) 45%, transparent 60%);

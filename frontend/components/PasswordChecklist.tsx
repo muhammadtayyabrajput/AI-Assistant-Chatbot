@@ -1,11 +1,4 @@
-export const PASSWORD_RULES = [
-  { label: "Starts with a capital letter", test: (p: string) => /^[A-Z]/.test(p) },
-  { label: "At least one number", test: (p: string) => /\d/.test(p) },
-  { label: "At least one special character (!@#$…)", test: (p: string) => /[^A-Za-z0-9]/.test(p) },
-  { label: "At least 6 characters", test: (p: string) => p.length >= 6 },
-];
-
-export const passwordValid = (p: string) => PASSWORD_RULES.every((r) => r.test(p));
+import { PASSWORD_RULES } from "@/lib/passwordRules";
 
 export default function PasswordChecklist({ password }: { password: string }) {
   return (

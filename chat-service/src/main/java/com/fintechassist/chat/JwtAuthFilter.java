@@ -26,7 +26,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     }
 
-    // SSE responses are written during an async dispatch; re-authenticate there too.
     @Override
     protected boolean shouldNotFilterAsyncDispatch() {
         return false;
@@ -44,9 +43,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                         claims.get("name", String.class), token);
                 SecurityContextHolder.getContext().setAuthentication(
                         new UsernamePasswordAuthenticationToken(user, null, List.of()));
-            } catch (Exception ignored) {
-                // invalid/expired token: stay unauthenticated, security config answers 401
-            }
+            } catch (Exception ignored) {}
         }
         chain.doFilter(req, res);
     }

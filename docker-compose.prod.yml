@@ -1,6 +1,4 @@
-# Production stack for a single VM (e.g. Oracle Cloud Always Free).
-#   docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --build
-# Only Caddy (80/443) is reachable from the internet. Databases and services stay on the private Docker network.
+# docker compose --env-file .env.prod -f docker-compose.prod.yml up -d --build
 services:
   mysql:
     image: mysql:8.4
@@ -82,7 +80,6 @@ services:
       CORS_ALLOWED_ORIGIN: ${CORS_ALLOWED_ORIGIN}
       OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:?set OPENROUTER_API_KEY in .env.prod}
       OPENROUTER_MODEL: ${OPENROUTER_MODEL:-anthropic/claude-haiku-4.5}
-      # keep the ~90 MB embedding model across rebuilds
       SPRING_AI_EMBEDDING_TRANSFORMER_CACHE_DIRECTORY: /models
     volumes:
       - models:/models

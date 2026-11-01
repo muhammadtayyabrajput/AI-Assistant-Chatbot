@@ -14,7 +14,6 @@ public class PasswordResetToken {
     @Column(nullable = false)
     private Long userId;
 
-    /** SHA-256 of the token; the raw token only ever exists in the emailed link. */
     @Column(nullable = false, unique = true, length = 64)
     private String tokenHash;
 

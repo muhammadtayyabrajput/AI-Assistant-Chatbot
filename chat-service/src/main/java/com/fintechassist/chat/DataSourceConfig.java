@@ -11,10 +11,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 
 import javax.sql.DataSource;
 
-/**
- * Two databases: MySQL (JPA: chats + messages) and Postgres/pgvector (embeddings only).
- * Defining both explicitly keeps the vector store off the MySQL connection.
- */
 @Configuration
 public class DataSourceConfig {
 
@@ -38,7 +34,6 @@ public class DataSourceConfig {
         return new JdbcTemplate(ds);
     }
 
-    /** all-MiniLM-L6-v2 produces 384-dimensional vectors. */
     @Bean
     PgVectorStore vectorStore(@Qualifier("vectorJdbcTemplate") JdbcTemplate jdbc, EmbeddingModel embeddingModel) {
         return PgVectorStore.builder(jdbc, embeddingModel)

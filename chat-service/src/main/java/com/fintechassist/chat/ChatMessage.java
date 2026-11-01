@@ -14,7 +14,6 @@ public class ChatMessage {
     @Column(nullable = false)
     private String chatId;
 
-    /** "user" or "assistant" */
     @Column(nullable = false, length = 16)
     private String role;
 

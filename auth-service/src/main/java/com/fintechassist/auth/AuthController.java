@@ -10,12 +10,15 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.Duration;
+
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
     private final UserRepository users;
     private final PasswordEncoder encoder;
     private final JwtService jwt;
+    private final RateLimiter failedLogins = new RateLimiter(10, Duration.ofMinutes(15));
 
     public AuthController(UserRepository users, PasswordEncoder encoder, JwtService jwt) {
         this.users = users;
@@ -23,7 +26,6 @@ public class AuthController {
         this.jwt = jwt;
     }
 
-    /** One account per email: checked here, and enforced by the unique constraint on users.email. */
     @PostMapping("/signup")
     public ResponseEntity<AuthResponse> signup(@Valid @RequestBody SignupRequest req) {
         String email = req.email().trim().toLowerCase();
@@ -36,9 +38,18 @@ public class AuthController {
 
     @PostMapping("/login")
     public AuthResponse login(@Valid @RequestBody LoginRequest req) {
-        User user = users.findByEmail(req.email().trim().toLowerCase())
+        String email = req.email().trim().toLowerCase();
+        if (failedLogins.isBlocked(email)) {
+            throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS,
+                    "Too many failed attempts. Try again in 15 minutes or reset your password.");
+        }
+        User user = users.findByEmail(email)
                 .filter(u -> encoder.matches(req.password(), u.getPasswordHash()))
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid email or password"));
+                .orElseThrow(() -> {
+                    failedLogins.record(email);
+                    return new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid email or password");
+                });
+        failedLogins.reset(email);
         return toResponse(user);
     }
 

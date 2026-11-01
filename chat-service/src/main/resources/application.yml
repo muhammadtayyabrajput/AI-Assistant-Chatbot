@@ -17,7 +17,6 @@ spring:
       chat: openai
       embedding: transformers
     openai:
-      # OpenRouter exposes an OpenAI-compatible API, so the OpenAI client works with any model it hosts.
       api-key: ${OPENROUTER_API_KEY:missing-key}
       base-url: https://openrouter.ai/api
       chat:
@@ -39,3 +38,4 @@ cors:
 chat:
   history-window: 10
   rag-top-k: 3
+  rate-limit-per-minute: 20

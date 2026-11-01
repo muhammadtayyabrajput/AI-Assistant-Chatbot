@@ -54,7 +54,6 @@ public class BankingController {
         return FaqData.FAQS;
     }
 
-    /** A user may only touch their own data: the path userId must match the JWT subject. */
     private void requireSelf(long userId, Authentication auth) {
         if (auth == null || !(auth.getPrincipal() instanceof Long id) || id != userId) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You can only access your own data");

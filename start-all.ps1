@@ -1,5 +1,3 @@
-# Starts databases, the three Spring Boot services, and the Next.js dev server in separate windows.
-# Usage:  $env:OPENROUTER_API_KEY = "sk-or-v1-..." ; .\start-all.ps1
 $root = $PSScriptRoot
 
 if (-not $env:OPENROUTER_API_KEY) {
@@ -8,7 +6,6 @@ if (-not $env:OPENROUTER_API_KEY) {
 
 docker compose -f "$root\docker-compose.yml" up -d
 
-# Use `mvn` from PATH, or a local Maven via $env:MVN_CMD
 $mvn = if ($env:MVN_CMD) { $env:MVN_CMD } else { "mvn" }
 
 foreach ($svc in "auth-service", "banking-service", "chat-service") {

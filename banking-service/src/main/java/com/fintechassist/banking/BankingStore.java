@@ -17,10 +17,6 @@ import java.util.Optional;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 
-/**
- * In-memory mock bank. Data for each user is generated deterministically the first time it is requested,
- * so every new signup immediately gets a realistic-looking account, cards and transaction history.
- */
 @Component
 public class BankingStore {
     private record Merchant(String name, String category, int minAmt, int maxAmt) {}
@@ -39,7 +35,7 @@ public class BankingStore {
             new Merchant("Starbucks", "Food", 4, 15));
 
     private static final class UserData {
-        final Account account;
+        volatile Account account;
         final List<Card> cards;
         final List<Transaction> transactions;
 
@@ -53,7 +49,11 @@ public class BankingStore {
     private final Map<Long, UserData> users = new ConcurrentHashMap<>();
 
     public Account account(long userId, String holderName) {
-        return data(userId, holderName).account;
+        UserData d = data(userId, holderName);
+        if (holderName != null && !holderName.isBlank() && !holderName.equals(d.account.holderName())) {
+            d.account = new Account(d.account.accountNumber(), holderName, d.account.balance(), d.account.currency());
+        }
+        return d.account;
     }
 
     public List<Card> cards(long userId) {

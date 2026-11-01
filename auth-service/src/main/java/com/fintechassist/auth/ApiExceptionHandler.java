@@ -25,7 +25,6 @@ public class ApiExceptionHandler {
         return ResponseEntity.status(e.getStatusCode()).body(Map.of("message", String.valueOf(e.getReason())));
     }
 
-    /** Two simultaneous signups with the same email: the DB unique constraint is the last line of defence. */
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<Map<String, String>> conflict(DataIntegrityViolationException e) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("message", "Email already registered"));
